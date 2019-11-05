@@ -1,0 +1,10 @@
+apiVersion: storage.tke.cloud.tencent.com/v1
+kind: CSI
+metadata:
+  name: cephfs
+  namespace: kube-system
+spec:
+  driverName: csi-cephfs
+  version: "v0"
+  parameters:
+    pools: myfs-data0

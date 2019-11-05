@@ -1,0 +1,3 @@
+version: "1"
+domain: tke.cloud.tencent.com
+repo: tkestack.io/csi-operator

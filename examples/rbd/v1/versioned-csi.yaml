@@ -1,0 +1,10 @@
+apiVersion: storage.tke.cloud.tencent.com/v1
+kind: CSI
+metadata:
+  name: rbd
+  namespace: kube-system
+spec:
+  driverName: csi-rbd
+  version: "v1"
+  parameters:
+    pools: replicapool

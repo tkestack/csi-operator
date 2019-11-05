@@ -1,0 +1,106 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: csis.storage.tke.cloud.tencent.com
+spec:
+  group: storage.tke.cloud.tencent.com
+  names:
+    kind: CSI
+    plural: csis
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            controller:
+              description: Components info of controller sidecars.
+              type: object
+            driverName:
+              description: Name of the CSI driver.
+              type: string
+            node:
+              description: Components info of daemonSet sidecars.
+              type: object
+            secrets:
+              description: Secrets used to provision/attach/resize/snapshot.
+              items:
+                type: object
+              type: array
+            storageClasses:
+              description: StorageClasses relevant to the Driver. Note that the provisioner
+                name will be override by the name of driver.
+              items:
+                type: object
+              type: array
+            version:
+              description: Version can be set to a well known CSI version. If version
+                set, you need to set DriverName to a well known driver type, and left
+                DriverTemplate, Node, Controller as empty. The operator will enhance
+                these fields.
+              type: string
+          required:
+            - driverName
+          type: object
+        status:
+          properties:
+            children:
+              description: Generation of Driver DaemonSets and Controller Deployments
+                that the operator has created / updated.
+              items:
+                properties:
+                  group:
+                    description: Group is the group of the object the operator involved
+                    type: string
+                  lastGeneration:
+                    description: LastGeneration is the last generation of the object
+                      the operator involved
+                    format: int64
+                    type: integer
+                  name:
+                    description: Name is the name of the object the operator involved
+                    type: string
+                  namespace:
+                    description: Namespace is where the object the operator involved
+                    type: string
+                  resource:
+                    description: Kind is the resource type of the object the operator
+                      involved
+                    type: string
+                required:
+                  - group
+                  - resource
+                  - namespace
+                  - name
+                  - lastGeneration
+                type: object
+              type: array
+            observedGeneration:
+              description: The generation observed by the operator.
+              format: int64
+              type: integer
+          type: object
+  version: v1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -1,0 +1,122 @@
+apiVersion: storage.tke.cloud.tencent.com/v1
+kind: CSI
+metadata:
+  name: rbd
+  namespace: kube-system
+spec:
+  driverName: csi-rbd
+  driverTemplate:
+    template:
+      spec:
+        hostNetwork: true
+        hostPID: true
+        # to use e.g. Rook orchestrated cluster, and mons' FQDN is
+        # resolved through k8s service, set dns policy to cluster first
+        dnsPolicy: ClusterFirstWithHostNet
+        containers:
+        - name: csi-rbd
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true
+          image: quay.io/cephcsi/rbdplugin:v0.3.0
+          args:
+          - "--nodeid=$(NODE_ID)"
+          - "--endpoint=$(CSI_ENDPOINT)"
+          - "--v=5"
+          - "--drivername=csi-rbd"
+          - "--containerized=true"
+          - "--metadatastorage=k8s_configmap"
+          env:
+          - name: HOST_ROOTFS
+            value: "/rootfs"
+          - name: NODE_ID
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          imagePullPolicy: "IfNotPresent"
+          volumeMounts:
+          - mountPath: /dev
+            name: host-dev
+          - mountPath: /rootfs
+            name: host-rootfs
+          - mountPath: /sys
+            name: host-sys
+          - mountPath: /lib/modules
+            name: lib-modules
+            readOnly: true
+        volumes:
+        - name: host-dev
+          hostPath:
+            path: /dev
+        - name: host-rootfs
+          hostPath:
+            path: /
+        - name: host-sys
+          hostPath:
+            path: /sys
+        - name: lib-modules
+          hostPath:
+            path: /lib/modules
+  node:
+    nodeRegistrar:
+      image: quay.io/k8scsi/driver-registrar:v0.3.0
+    livenessProbe:
+      image: quay.io/k8scsi/livenessprobe:v0.4.1
+      parameters:
+        storage.tke.cloud.tencent.com/liveness-probe-port: "9809"
+  controller:
+    replicas: 1
+    provisioner:
+      image: quay.io/k8scsi/csi-provisioner:v0.4.2
+      resources:
+        limits:
+          "cpu": 100m
+          "memory": 100Mi
+    attacher:
+      image: quay.io/k8scsi/csi-attacher:v0.4.2
+      resources:
+        limits:
+          "cpu": 100m
+          "memory": 100Mi
+    snapshotter:
+      image: quay.io/k8scsi/csi-snapshotter:v0.4.1
+      resources:
+        limits:
+          "cpu": 100m
+          "memory": 100Mi
+    livenessProbe:
+      image: quay.io/k8scsi/livenessprobe:v0.4.1
+      parameters:
+        storage.tke.cloud.tencent.com/liveness-probe-port: "9808"
+  secrets:
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: csi-rbd-secret
+      namespace: kube-system
+    data:
+      admin: QVFCZHI4SmNDZEk3SnhBQWhHL0N4akxFdW05RUI2bUMrRGEza1E9PQ==
+  storageClasses:
+  - apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+       name: csi-rbd
+    provisioner: csi-rbd
+    parameters:
+        monitors: 10.0.0.27:6789,10.0.0.27:3300
+        pool: replicapool
+        imageFormat: "2"
+        imageFeatures: layering
+        csiProvisionerSecretName: csi-rbd-secret
+        csiProvisionerSecretNamespace: kube-system
+        csiNodePublishSecretName: csi-rbd-secret
+        csiNodePublishSecretNamespace: kube-system
+        adminid: admin
+        userid: admin
+    reclaimPolicy: Delete

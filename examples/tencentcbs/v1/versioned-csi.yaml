@@ -1,0 +1,11 @@
+apiVersion: storage.tke.cloud.tencent.com/v1
+kind: CSI
+metadata:
+  name: tencentcbsv1
+  namespace: kube-system
+spec:
+  driverName: com.tencent.cloud.csi.cbs
+  version: "v1"
+  parameters:
+    secretID: "xxxxxx"
+    secretKey: "xxxxxx"

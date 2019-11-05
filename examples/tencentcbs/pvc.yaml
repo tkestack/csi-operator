@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-tencentcbs
+  namespace: kube-system
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: cbs-basic-prepaid
+  resources:
+    requests:
+      storage: 10Gi
