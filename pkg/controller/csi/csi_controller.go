@@ -53,7 +53,7 @@ func newReconciler(mgr manager.Manager, cfg *config.Config) reconcile.Reconciler
 	return &ReconcileCSI{
 		client:   mgr.GetClient(),
 		config:   cfg,
-		recorder: mgr.GetRecorder("csi-operator"),
+		recorder: mgr.GetEventRecorderFor("csi-operator"),
 		enhancer: enhancer.New(cfg),
 	}
 }
