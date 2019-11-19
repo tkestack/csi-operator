@@ -62,7 +62,7 @@ func (r *ReconcileCSI) updateObject(object runtime.Object) error {
 func (r *ReconcileCSI) listObjects(list runtime.Object, opts *client.ListOptions) error {
 	ctx, cancel := getContext()
 	defer cancel()
-	return r.client.List(ctx, opts, list)
+	return r.client.List(ctx, list, opts)
 }
 
 // deleteObject deletes an object in k8s.
