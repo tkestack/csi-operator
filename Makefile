@@ -16,19 +16,10 @@ csi-operator: generate fmt vet revive
 run: generate fmt vet revive
 	go run ./cmd/csi-operator/main.go
 
-# Install CRDs into a cluster
-install: manifests
-	kubectl apply -f config/crds
-
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
-	kubectl apply -f config/crds
-	kustomize build config/default | kubectl apply -f -
-
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
 	$(shell if [ ! -f "controller-gen" ];then go install sigs.k8s.io/controller-tools/cmd/controller-gen;fi)
-	controller-gen all
+	controller-gen crd paths=./pkg/apis/... output:crd:dir=./config/crds
 
 # Run go fmt against code
 fmt:
