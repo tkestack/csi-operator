@@ -4,6 +4,12 @@ Operator that deploys and updates CSI driver and external components in Kubernet
 
 ## Build
 
+Please install `revive` before building:
+
+```
+go get -u github.com/mgechev/revive
+```
+
 To make the binary, just run:
 
 ```bash
