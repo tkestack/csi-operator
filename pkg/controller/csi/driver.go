@@ -288,7 +288,7 @@ func (r *ReconcileCSI) generateNodeDriverVolumeMounts(csiDeploy *csiv1.CSI) []co
 
 // nodeSocketDir returns the socket dir of the driver.
 func (r *ReconcileCSI) nodeSocketDir(csiDeploy *csiv1.CSI) string {
-	return filepath.Join(r.config.KubeletRootDir, "plugins", sanitizeDriverName(csiDeploy.Spec.DriverName))
+	return filepath.Join(r.config.KubeletRootDir, "csi-plugins", sanitizeDriverName(csiDeploy.Spec.DriverName))
 }
 
 // syncControllerDriver updates the Controller Driver of CSI.
