@@ -19,4 +19,4 @@
 package storage
 
 // GroupName for storage API.
-const GroupName = "storage.tke.cloud.tencent.com"
+const GroupName = "storage.tkestack.io"

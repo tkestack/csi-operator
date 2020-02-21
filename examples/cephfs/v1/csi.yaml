@@ -1,4 +1,4 @@
-apiVersion: storage.tke.cloud.tencent.com/v1
+apiVersion: storage.tkestack.io/v1
 kind: CSI
 metadata:
   name: cephfs
@@ -65,7 +65,7 @@ spec:
     livenessProbe:
       image: quay.io/k8scsi/livenessprobe:v1.1.0
       parameters:
-        storage.tke.cloud.tencent.com/liveness-probe-port: "9819"
+        storage.tkestack.io/liveness-probe-port: "9819"
   controller:
     replicas: 1
     provisioner:
@@ -85,7 +85,7 @@ spec:
     livenessProbe:
       image: quay.io/k8scsi/livenessprobe:v1.1.0
       parameters:
-        storage.tke.cloud.tencent.com/liveness-probe-port: "9818"
+        storage.tkestack.io/liveness-probe-port: "9818"
   secrets:
   - apiVersion: v1
     kind: Secret

@@ -26,7 +26,7 @@ import (
 	"k8s.io/klog"
 )
 
-const csiDeploymentFinalizer = "storage.tke.cloud.tencent.com"
+const csiDeploymentFinalizer = "storage.tkestack.io"
 
 // Add a finalizer to CSI object to avoid unsafe deletion.
 func (r *ReconcileCSI) addFinalizer(csiDeploy *csiv1.CSI) error {

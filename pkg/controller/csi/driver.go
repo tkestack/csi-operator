@@ -38,8 +38,8 @@ import (
 )
 
 const (
-	nodeDriverLabel       = "storage.tke.cloud.tencent.com/nodedriver"
-	controllerDriverLabel = "storage.tke.cloud.tencent.com/controllerdriver"
+	nodeDriverLabel       = "storage.tkestack.io/nodedriver"
+	controllerDriverLabel = "storage.tkestack.io/controllerdriver"
 
 	socketVolumeName         = "csi-socket"
 	registrationVolumeName   = "registration-dir"

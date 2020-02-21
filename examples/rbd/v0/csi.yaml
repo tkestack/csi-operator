@@ -1,4 +1,4 @@
-apiVersion: storage.tke.cloud.tencent.com/v1
+apiVersion: storage.tkestack.io/v1
 kind: CSI
 metadata:
   name: rbd
@@ -69,7 +69,7 @@ spec:
     livenessProbe:
       image: quay.io/k8scsi/livenessprobe:v0.4.1
       parameters:
-        storage.tke.cloud.tencent.com/liveness-probe-port: "9809"
+        storage.tkestack.io/liveness-probe-port: "9809"
   controller:
     replicas: 1
     provisioner:
@@ -93,7 +93,7 @@ spec:
     livenessProbe:
       image: quay.io/k8scsi/livenessprobe:v0.4.1
       parameters:
-        storage.tke.cloud.tencent.com/liveness-probe-port: "9808"
+        storage.tkestack.io/liveness-probe-port: "9808"
   secrets:
   - apiVersion: v1
     kind: Secret

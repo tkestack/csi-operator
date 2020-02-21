@@ -28,9 +28,9 @@ import (
 
 const (
 	// ownerName is name of label with name of owner CSI.
-	ownerName = "storage.tke.cloud.tencent.com/owner-name"
+	ownerName = "storage.tkestack.io/owner-name"
 	// ownerNamespace is name of label with namespace of owner CSI.
-	ownerNamespace = "storage.tke.cloud.tencent.com/owner-namespace"
+	ownerNamespace = "storage.tkestack.io/owner-namespace"
 )
 
 // newOwnerLabelHandler enqueues Requests for the owner of an object. The owner is determined based on

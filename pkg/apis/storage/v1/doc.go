@@ -20,5 +20,5 @@
 // +k8s:deepcopy-gen=package,register
 // +k8s:conversion-gen=tkestack.io/csi-operator/pkg/apis/csi
 // +k8s:defaulter-gen=TypeMeta
-// +groupName=storage.tke.cloud.tencent.com
+// +groupName=storage.tkestack.io
 package v1

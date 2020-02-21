@@ -1,4 +1,4 @@
-apiVersion: storage.tke.cloud.tencent.com/v1
+apiVersion: storage.tkestack.io/v1
 kind: CSI
 metadata:
   name: tencentcbsv0

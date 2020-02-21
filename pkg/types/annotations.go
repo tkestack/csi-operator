@@ -18,4 +18,4 @@
 package types
 
 // LivenessProbePortKey is the annotation key to set liveness probe port in CSI object.
-const LivenessProbePortKey = "storage.tke.cloud.tencent.com/liveness-probe-port"
+const LivenessProbePortKey = "storage.tkestack.io/liveness-probe-port"

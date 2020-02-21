@@ -11,10 +11,10 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: csi-operator-role
 rules:
-  - apiGroups: ["storage.tke.cloud.tencent.com"]
+  - apiGroups: ["storage.tkestack.io"]
     resources: ["csis"]
     verbs: ["get", "list", "watch", "create", "update", "delete"]
-  - apiGroups: ["storage.tke.cloud.tencent.com"]
+  - apiGroups: ["storage.tkestack.io"]
     resources: ["csis/status"]
     verbs: ["update", "patch"]
   - apiGroups: ["apps"]

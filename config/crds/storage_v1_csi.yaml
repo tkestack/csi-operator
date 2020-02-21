@@ -4,9 +4,9 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: csis.storage.tke.cloud.tencent.com
+  name: csis.storage.tkestack.io
 spec:
-  group: storage.tke.cloud.tencent.com
+  group: storage.tkestack.io
   names:
     kind: CSI
     plural: csis
