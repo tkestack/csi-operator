@@ -65,7 +65,11 @@ const (
 	systemNamespace = "kube-system"
 )
 
-var csiV1 = version.MustParseGeneric("v1.0.0")
+var (
+	csiV1  = version.MustParseGeneric("v1.0.0")
+	csiV11 = version.MustParseGeneric("v1.1.0")
+	csiV2  = version.MustParseGeneric("v2.0.0")
+)
 
 // syncNodeDriver updates the Node Driver of CSI.
 func (r *ReconcileCSI) syncNodeDriver(csiDeploy *csiv1.CSI) (*appsv1.DaemonSet, bool, error) {
@@ -428,9 +432,10 @@ func (r *ReconcileCSI) generateProvisioner(csiDeploy *csiv1.CSI) corev1.Containe
 
 // generateAttacher generates the content of Attacher container.
 func (r *ReconcileCSI) generateAttacher(csiDeploy *csiv1.CSI) corev1.Container {
+	image := csiDeploy.Spec.Controller.Attacher.Image
 	attacher := corev1.Container{
 		Name:  "csi-attacher",
-		Image: csiDeploy.Spec.Controller.Attacher.Image,
+		Image: image,
 		Args: []string{
 			"--v=5",
 			"--csi-address=$(ADDRESS)",
@@ -451,6 +456,15 @@ func (r *ReconcileCSI) generateAttacher(csiDeploy *csiv1.CSI) corev1.Container {
 		}, sidecarEnvs()...),
 		VolumeMounts: sidecarVolumeMounts(),
 	}
+
+	v := version.MustParseGeneric(image[strings.LastIndex(image, ":")+1:])
+	if v.LessThan(csiV2) && v.AtLeast(csiV11) {
+		klog.V(3).Infof("%s's attacher version is %s, need leader-election-type arg", csiDeploy.Name, v)
+		attacher.Args = append(attacher.Args, "--leader-election-type=leases")
+	} else {
+		klog.V(3).Infof("%s's attacher version is %s, no need leader-election-type arg", csiDeploy.Name, v)
+	}
+
 	copySecurityContext(csiDeploy, &attacher)
 	return attacher
 }

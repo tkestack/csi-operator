@@ -168,6 +168,11 @@ func generateControllerRole(csiDeploy *csiv1.CSI) *rbacv1.ClusterRole {
 			Resources: []string{"configmaps", "endpoints"},
 			Verbs:     []string{"get", "list", "watch", "update", "create", "delete"},
 		},
+		{
+			APIGroups: []string{"coordination.k8s.io"},
+			Resources: []string{"leases"},
+			Verbs:     []string{"get", "list", "watch", "update", "create", "delete"},
+		},
 	}
 	if needSecretRule(csiDeploy) {
 		rules = append(rules, rbacv1.PolicyRule{
@@ -243,6 +248,11 @@ func attacherPolicyRules() []rbacv1.PolicyRule {
 		{
 			APIGroups: []string{"storage.k8s.io"},
 			Resources: []string{"volumeattachments"},
+			Verbs:     []string{"get", "list", "watch", "update"},
+		},
+		{
+			APIGroups: []string{"storage.k8s.io"},
+			Resources: []string{"csinodes"},
 			Verbs:     []string{"get", "list", "watch", "update"},
 		},
 	}
