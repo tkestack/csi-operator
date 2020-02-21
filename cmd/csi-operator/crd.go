@@ -74,12 +74,6 @@ var csiCRD = &extensionsv1beta1.CustomResourceDefinition{
 				Name:    "v1",
 				Served:  true,
 				Storage: true,
-				Schema: &extensionsv1beta1.CustomResourceValidation{
-					OpenAPIV3Schema: schema,
-				},
-				Subresources: &extensionsv1beta1.CustomResourceSubresources{
-					Status: &extensionsv1beta1.CustomResourceSubresourceStatus{},
-				},
 			},
 		},
 		Validation: &extensionsv1beta1.CustomResourceValidation{
