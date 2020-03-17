@@ -123,6 +123,12 @@ func (e *cephEnhancer) enhanceCephRBD(csiDeploy *csiv1.CSI) error {
 				HostNetwork: true,
 				HostPID:     true,
 				DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
+				Tolerations: []corev1.Toleration{
+					{
+						Key:    "node-role.kubernetes.io/master",
+						Effect: corev1.TaintEffectNoSchedule,
+					},
+				},
 				Containers: []corev1.Container{
 					{
 						Name: "csi-rbd",
@@ -189,6 +195,12 @@ func (e *cephEnhancer) enhanceCephFS(csiDeploy *csiv1.CSI) error {
 			Spec: corev1.PodSpec{
 				HostNetwork: true,
 				DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
+				Tolerations: []corev1.Toleration{
+					{
+						Key:    "node-role.kubernetes.io/master",
+						Effect: corev1.TaintEffectNoSchedule,
+					},
+				},
 				Containers: []corev1.Container{
 					{
 						Name: "csi-cephfs",

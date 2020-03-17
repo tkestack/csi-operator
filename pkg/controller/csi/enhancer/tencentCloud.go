@@ -110,6 +110,12 @@ func (e *tencentCloudEnhancer) generateDriverTemplate(
 				HostPID:     true,
 				HostIPC:     true,
 				DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
+				Tolerations: []corev1.Toleration{
+					{
+						Key:    "node-role.kubernetes.io/master",
+						Effect: corev1.TaintEffectNoSchedule,
+					},
+				},
 				Containers: []corev1.Container{
 					{
 						Name: "com-tencent-cloud-csi-cbs",
