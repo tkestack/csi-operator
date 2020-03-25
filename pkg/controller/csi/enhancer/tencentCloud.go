@@ -33,12 +33,16 @@ import (
 const (
 	secretID  = "secretID"
 	secretKey = "secretKey"
+	vpcID     = "vpcID"
+	subnetID  = "subnetID"
 )
 
 // tencentCloudInfo if a set of information of TencentCloud secrets.
 type tencentCloudInfo struct {
 	SecretID  string
 	SecretKey string
+	VpcID     string
+	SubnetID  string
 }
 
 // newTencentCloudEnhancer creates a tencentCloudEnhancer.
@@ -53,8 +57,11 @@ type tencentCloudEnhancer struct {
 
 // Enhance enhances a well known CSI type.
 func (e *tencentCloudEnhancer) Enhance(csiDeploy *csiv1.CSI) error {
-	if csiDeploy.Spec.DriverName == csiv1.CSIDriverTencentCBS {
+	switch csiDeploy.Spec.DriverName {
+	case csiv1.CSIDriverTencentCBS:
 		return e.enhanceTencentCBS(csiDeploy)
+	case csiv1.CSIDriverTencentCFS:
+		return e.enhanceTencentCFS(csiDeploy)
 	}
 	return fmt.Errorf("unknown type: %s", csiDeploy.Spec.DriverName)
 }
@@ -77,7 +84,7 @@ func (e *tencentCloudEnhancer) enhanceTencentCBS(csiDeploy *csiv1.CSI) error {
 		}
 	}
 
-	csiDeploy.Spec.DriverTemplate = e.generateDriverTemplate(csiVersion, csiDeploy)
+	csiDeploy.Spec.DriverTemplate = e.generateCBSDriverTemplate(csiVersion, csiDeploy)
 
 	if csiDeploy.Spec.Version == csiv1.CSIVersionV1 {
 		csiDeploy.Spec.DriverTemplate.Template.Spec.Containers[0].Command = []string{
@@ -90,7 +97,7 @@ func (e *tencentCloudEnhancer) enhanceTencentCBS(csiDeploy *csiv1.CSI) error {
 		return fmt.Errorf("get tencent info failed: %v", err)
 	}
 
-	csiDeploy.Spec.Secrets, csiDeploy.Spec.StorageClasses, err = e.generateSecretAndSCs(
+	csiDeploy.Spec.Secrets, csiDeploy.Spec.StorageClasses, err = e.generateCBSSecretAndSCs(
 		csiDeploy, tencentInfo)
 	if err != nil {
 		return fmt.Errorf("enhance TencentCloud Secret or StorageClasses failed: %v", err)
@@ -99,8 +106,48 @@ func (e *tencentCloudEnhancer) enhanceTencentCBS(csiDeploy *csiv1.CSI) error {
 	return nil
 }
 
-// generateDriverTemplate generates the content of DriverTemplate.
-func (e *tencentCloudEnhancer) generateDriverTemplate(
+// enhanceTencentCFS enhances CSI for TencentCloud CFS storage.
+func (e *tencentCloudEnhancer) enhanceTencentCFS(csiDeploy *csiv1.CSI) error {
+	csiVersion, err := getCSIVersion(csiDeploy)
+	if err != nil {
+		return err
+	}
+	enhanceExternalComponents(e.config, csiDeploy, csiVersion)
+	if csiDeploy.Spec.Node.LivenessProbe != nil {
+		csiDeploy.Spec.Node.LivenessProbe.Parameters = map[string]string{
+			types.LivenessProbePortKey: tencentCFSLivenessProbePorts.Node,
+		}
+	}
+	if csiDeploy.Spec.Controller.LivenessProbe != nil {
+		csiDeploy.Spec.Controller.LivenessProbe.Parameters = map[string]string{
+			types.LivenessProbePortKey: tencentCFSLivenessProbePorts.Controller,
+		}
+	}
+
+	csiDeploy.Spec.DriverTemplate = e.generateCFSDriverTemplate(csiVersion, csiDeploy)
+
+	if csiDeploy.Spec.Version == csiv1.CSIVersionV1 {
+		csiDeploy.Spec.DriverTemplate.Template.Spec.Containers[0].Command = []string{
+			"/csi-tencentcloud-cfs",
+		}
+	}
+
+	tencentInfo, err := e.getTencentInfo(csiDeploy)
+	if err != nil {
+		return fmt.Errorf("get tencent info failed: %v", err)
+	}
+
+	csiDeploy.Spec.Secrets, csiDeploy.Spec.StorageClasses, err = e.generateCFSSecretAndSCs(
+		csiDeploy, tencentInfo)
+	if err != nil {
+		return fmt.Errorf("enhance TencentCloud Secret or StorageClasses failed: %v", err)
+	}
+
+	return nil
+}
+
+// generateCBSDriverTemplate generates the content of TencentCloud CBS storage's DriverTemplate.
+func (e *tencentCloudEnhancer) generateCBSDriverTemplate(
 	csiVersion *csiVersion,
 	csiDeploy *csiv1.CSI) *csiv1.CSIDriverTemplate {
 	return &csiv1.CSIDriverTemplate{
@@ -183,6 +230,96 @@ func (e *tencentCloudEnhancer) generateDriverTemplate(
 	}
 }
 
+// generateCFSDriverTemplate generates the content of TencentCloud CFS storage's DriverTemplate.
+func (e *tencentCloudEnhancer) generateCFSDriverTemplate(
+	csiVersion *csiVersion,
+	csiDeploy *csiv1.CSI) *csiv1.CSIDriverTemplate {
+	return &csiv1.CSIDriverTemplate{
+		Template: corev1.PodTemplateSpec{
+			Spec: corev1.PodSpec{
+				HostNetwork: true,
+				HostPID:     true,
+				HostIPC:     true,
+				DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
+				Tolerations: []corev1.Toleration{
+					{
+						Key:    "node-role.kubernetes.io/master",
+						Effect: corev1.TaintEffectNoSchedule,
+					},
+				},
+				Containers: []corev1.Container{
+					{
+						Name: "com-tencent-cloud-csi-cfs",
+						SecurityContext: &corev1.SecurityContext{
+							Privileged: boolPtr(true),
+							Capabilities: &corev1.Capabilities{
+								Add: []corev1.Capability{"SYS_ADMIN"},
+							},
+							AllowPrivilegeEscalation: boolPtr(true),
+						},
+						Image: getImage(e.config.RegistryDomain, csiVersion.Driver),
+						Command: []string{
+							"/bin/csi-tencentcloud",
+						},
+						Args: []string{
+							"--v=5",
+							"--logtostderr=true",
+							"--endpoint=$(CSI_ENDPOINT)",
+						},
+						Env: []corev1.EnvVar{
+							{
+								Name: "NODE_ID",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{FieldPath: "spec.nodeName"},
+								},
+							},
+							{
+								Name: "TENCENTCLOUD_API_SECRET_ID",
+								ValueFrom: &corev1.EnvVarSource{
+									SecretKeyRef: &corev1.SecretKeySelector{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: getSecretName(csiDeploy),
+										},
+										Key: "TENCENTCLOUD_API_SECRET_ID",
+									},
+								},
+							},
+							{
+								Name: "TENCENTCLOUD_API_SECRET_KEY",
+								ValueFrom: &corev1.EnvVarSource{
+									SecretKeyRef: &corev1.SecretKeySelector{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: getSecretName(csiDeploy),
+										},
+										Key: "TENCENTCLOUD_API_SECRET_KEY",
+									},
+								},
+							},
+						},
+						ImagePullPolicy: corev1.PullAlways,
+						VolumeMounts: []corev1.VolumeMount{
+							{
+								Name:      "device-dir",
+								MountPath: "/dev",
+							},
+						},
+					},
+				},
+				Volumes: []corev1.Volume{
+					{
+						Name: "device-dir",
+						VolumeSource: corev1.VolumeSource{
+							HostPath: &corev1.HostPathVolumeSource{
+								Path: "/dev",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 // getTencentInfo generates TencentCloud information from CSI object and global config.
 func (e *tencentCloudEnhancer) getTencentInfo(csiDeploy *csiv1.CSI) (*tencentCloudInfo, error) {
 	secretID := csiDeploy.Spec.Parameters[secretID]
@@ -195,18 +332,30 @@ func (e *tencentCloudEnhancer) getTencentInfo(csiDeploy *csiv1.CSI) (*tencentClo
 		secretKey = e.config.SecretKey
 	}
 
-	if len(secretID) > 0 && len(secretKey) > 0 {
-		return &tencentCloudInfo{
-			SecretID:  secretID,
-			SecretKey: secretKey,
-		}, nil
+	if len(secretID) == 0 || len(secretKey) == 0 {
+		return nil, fmt.Errorf("no tencent info of secretID, secretKey in csiDeploy.Spec.Parameters: %v", csiDeploy.Spec.Parameters)
 	}
 
-	return nil, fmt.Errorf("no tencent info found in csiDeploy.Spec.Parameters: %v", csiDeploy.Spec.Parameters)
+	vpcID := csiDeploy.Spec.Parameters[vpcID]
+
+	subnetID := csiDeploy.Spec.Parameters[subnetID]
+
+	if csiDeploy.Spec.DriverName == csiv1.CSIDriverTencentCFS {
+		if len(vpcID) == 0 || len(subnetID) == 0 {
+			return nil, fmt.Errorf("no tencent info of vpcID, subnetID in csiDeploy.Spec.Parameters: %v", csiDeploy.Spec.Parameters)
+		}
+	}
+
+	return &tencentCloudInfo{
+		SecretID:  secretID,
+		SecretKey: secretKey,
+		VpcID:     vpcID,
+		SubnetID:  subnetID,
+	}, nil
 }
 
-// generateSecretAndSCs generates secrets and StorageClasses needed by TencentCloud storage.
-func (e *tencentCloudEnhancer) generateSecretAndSCs(
+// generateCBSSecretAndSCs generates secrets and StorageClasses needed by TencentCloud CBS storage.
+func (e *tencentCloudEnhancer) generateCBSSecretAndSCs(
 	csiDeploy *csiv1.CSI,
 	tencentInfo *tencentCloudInfo) ([]corev1.Secret, []storagev1.StorageClass, error) {
 	// Generate secrets.
@@ -245,6 +394,50 @@ func (e *tencentCloudEnhancer) generateSecretAndSCs(
 			"diskChargeType":              "PREPAID",
 			"diskChargeTypePrepaidPeriod": "2",
 			"diskChargePrepaidRenewFlag":  "NOTIFY_AND_AUTO_RENEW",
+		},
+	}
+
+	return []corev1.Secret{secret}, []storagev1.StorageClass{storageClass}, nil
+}
+
+// generateCFSSecretAndSCs generates secrets and StorageClasses needed by TencentCloud CFS storage.
+func (e *tencentCloudEnhancer) generateCFSSecretAndSCs(
+	csiDeploy *csiv1.CSI,
+	tencentInfo *tencentCloudInfo) ([]corev1.Secret, []storagev1.StorageClass, error) {
+	// Generate secrets.
+	secretName := getSecretName(csiDeploy)
+	secret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: csiDeploy.Namespace,
+		},
+	}
+
+	secretID, err := base64.StdEncoding.DecodeString(tencentInfo.SecretID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("secretID decoding failed: %v", err)
+	}
+	secretKey, err := base64.StdEncoding.DecodeString(tencentInfo.SecretKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("secretKey decoding failed: %v", err)
+	}
+
+	secret.Data = map[string][]byte{
+		"TENCENTCLOUD_API_SECRET_ID":  secretID,
+		"TENCENTCLOUD_API_SECRET_KEY": secretKey,
+	}
+
+	// Generate storageClasses.
+	reclaimPolicy := corev1.PersistentVolumeReclaimDelete
+	var storageClass = storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cfsauto",
+		},
+		Provisioner:   csiDeploy.Spec.DriverName,
+		ReclaimPolicy: &reclaimPolicy,
+		Parameters: map[string]string{
+			"vpcid":    tencentInfo.VpcID,
+			"subnetid": tencentInfo.SubnetID,
 		},
 	}
 
