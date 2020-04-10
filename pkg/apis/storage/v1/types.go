@@ -66,7 +66,7 @@ const (
 	// CSIDriverTencentCOS indicates the Tencent Cloud COS storage type.
 	CSIDriverTencentCOS = "csi-tencent-cloud-cos"
 	// CSIDriverTencentCFS indicates the Tencent Cloud CFS storage type.
-	CSIDriverTencentCFS = "csi-tencent-cloud-cfs"
+	CSIDriverTencentCFS = "com.tencent.cloud.csi.cfs"
 )
 
 // CSIVersion indicates the version of CSI external components.

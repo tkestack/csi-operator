@@ -1,0 +1,13 @@
+apiVersion: storage.tkestack.io/v1
+kind: CSI
+metadata:
+  name: tencentcfsv0
+  namespace: kube-system
+spec:
+  driverName: com.tencent.cloud.csi.cfs
+  version: "v0"
+  parameters:
+    APISecretID: "xxxxxx"
+    APISecretKey: "xxxxxx"
+    vpcID: "vpc-xxxxxxxx"
+    subnetID: "subnet-xxxxxxxx"

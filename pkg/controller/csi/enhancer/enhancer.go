@@ -41,6 +41,7 @@ var (
 	cephRBDLivenessProbePorts    = livenessProbePorts{Node: "9809", Controller: "9808"}
 	cephFSLivenessProbePorts     = livenessProbePorts{Node: "9819", Controller: "9818"}
 	tencentCBSLivenessProbePorts = livenessProbePorts{Node: "9829", Controller: "9828"}
+	tencentCFSLivenessProbePorts = livenessProbePorts{Node: "9839", Controller: "9838"}
 )
 
 // livenessProbePorts is the set of livenessProbe ports of CSI components.
@@ -115,6 +116,20 @@ var csiVersionMap = map[string]map[csiv1.CSIVersion]*csiVersion{
 			Driver:        "csi-tencentcloud-cbs:v1.0.0",
 		},
 	},
+	csiv1.CSIDriverTencentCFS: {
+		csiv1.CSIVersionV0: {
+			Provisioner:   "csi-provisioner:v0.4.2",
+			Attacher:      "csi-attacher:v0.4.2",
+			NodeRegistrar: "driver-registrar:v0.3.0",
+			Driver:        "csi-tencentcloud-cfs:v0.2.1",
+		},
+		csiv1.CSIVersionV1: {
+			Provisioner:   "csi-provisioner:v1.0.1",
+			Attacher:      "csi-attacher:v1.1.0",
+			NodeRegistrar: "csi-node-driver-registrar:v1.1.0",
+			Driver:        "csi-tencentcloud-cfs:v1.0.0",
+		},
+	},
 }
 
 // New creates a Enhancer.
@@ -126,6 +141,7 @@ func New(config *config.Config) Enhancer {
 			csiv1.CSIDriverCephRBD:    cephEnhancer,
 			csiv1.CSIDriverCephFS:     cephEnhancer,
 			csiv1.CSIDriverTencentCBS: tencentCloudEnhancer,
+			csiv1.CSIDriverTencentCFS: tencentCloudEnhancer,
 		},
 	}
 }
