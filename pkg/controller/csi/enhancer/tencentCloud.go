@@ -234,7 +234,7 @@ func (e *tencentCloudEnhancer) generateSecretAndSCs(
 
 	// Generate storageClasses.
 	reclaimPolicy := corev1.PersistentVolumeReclaimDelete
-	var storageClass = storagev1.StorageClass{
+	var basicSC = storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cbs-basic-prepaid",
 		},
@@ -247,6 +247,26 @@ func (e *tencentCloudEnhancer) generateSecretAndSCs(
 			"diskChargePrepaidRenewFlag":  "NOTIFY_AND_AUTO_RENEW",
 		},
 	}
+	var premiumSC = storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cbs-premium",
+		},
+		Provisioner:   csiDeploy.Spec.DriverName,
+		ReclaimPolicy: &reclaimPolicy,
+		Parameters: map[string]string{
+			"diskType": "CLOUD_PREMIUM",
+		},
+	}
+	var ssdSC = storagev1.StorageClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cbs-ssd",
+		},
+		Provisioner:   csiDeploy.Spec.DriverName,
+		ReclaimPolicy: &reclaimPolicy,
+		Parameters: map[string]string{
+			"diskType": "CLOUD_SSD",
+		},
+	}
 
-	return []corev1.Secret{secret}, []storagev1.StorageClass{storageClass}, nil
+	return []corev1.Secret{secret}, []storagev1.StorageClass{basicSC, premiumSC, ssdSC}, nil
 }
