@@ -497,7 +497,6 @@ func (r *ReconcileCSI) generateResizer(csiDeploy *csiv1.CSI) corev1.Container {
 			"--csi-address=$(ADDRESS)",
 			"--leader-election",
 			"--leader-election-namespace=$(MY_NAMESPACE)",
-			"--leader-election-identity=$(MY_NAME)",
 		},
 		Resources: csiDeploy.Spec.Controller.Resizer.Resources,
 		Env: append([]corev1.EnvVar{
