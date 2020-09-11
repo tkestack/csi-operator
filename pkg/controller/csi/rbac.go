@@ -155,7 +155,7 @@ func generateControllerRole(csiDeploy *csiv1.CSI) *rbacv1.ClusterRole {
 		{
 			APIGroups: []string{""},
 			Resources: []string{"persistentvolumes"},
-			Verbs:     []string{"get", "list", "watch", "update", "create", "delete"},
+			Verbs:     []string{"get", "list", "watch", "update", "create", "delete", "patch"},
 		},
 		{
 			APIGroups: []string{""},
@@ -228,6 +228,11 @@ func provisionerPolicyRules() []rbacv1.PolicyRule {
 			APIGroups: []string{""},
 			Resources: []string{"persistentvolumeclaims"},
 			Verbs:     []string{"get", "list", "watch", "update"},
+		},
+		{
+			APIGroups: []string{""},
+			Resources: []string{"persistentvolumeclaims/status"},
+			Verbs:     []string{"update", "patch"},
 		},
 		{
 			APIGroups: []string{"storage.k8s.io"},
