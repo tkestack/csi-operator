@@ -46,7 +46,7 @@ const (
 	podMountDirVolumeName    = "pod-mount"
 	deviceMountDirVolumeName = "device-mount"
 
-	deviceMountRelPath = "plugins/kubernetes.io/csi/volumeDevices"
+	deviceMountRelPath = "plugins/kubernetes.io/csi"
 
 	endpointENVName         = "CSI_ENDPOINT"
 	endpointInsideContainer = "/csi/csi.sock"
