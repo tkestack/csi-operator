@@ -72,6 +72,6 @@ type TencentCloudConfig struct {
 
 // AddFlags add the TencentCloud configurations to global flag.
 func (c *TencentCloudConfig) AddFlags() {
-	flag.StringVar(&c.SecretID, "tencent-cloud-secret-id", "admin", "API Secret ID of Tencent Cloud")
-	flag.StringVar(&c.SecretKey, "tencent-cloud-secret-key", "admin", "API Secret Key of Tencent Cloud")
+	flag.StringVar(&c.SecretID, "tencent-cloud-secret-id", "", "API Secret ID of Tencent Cloud")
+	flag.StringVar(&c.SecretKey, "tencent-cloud-secret-key", "", "API Secret Key of Tencent Cloud")
 }

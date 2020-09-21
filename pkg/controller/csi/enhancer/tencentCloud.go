@@ -28,6 +28,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/klog"
 )
 
 const (
@@ -86,10 +88,15 @@ func (e *tencentCloudEnhancer) enhanceTencentCBS(csiDeploy *csiv1.CSI) error {
 
 	csiDeploy.Spec.DriverTemplate = e.generateDriverTemplate(csiVersion, csiDeploy)
 
-	if csiDeploy.Spec.Version == csiv1.CSIVersionV1 {
-		csiDeploy.Spec.DriverTemplate.Template.Spec.Containers[0].Command = []string{
-			"/csi-tencentcloud-cbs",
+	if curVersion, err := version.ParseGeneric(string(csiDeploy.Spec.Version)); err == nil {
+		csiV1 := version.MustParseGeneric(csiv1.CSIVersionV1)
+		if curVersion.AtLeast(csiV1) {
+			csiDeploy.Spec.DriverTemplate.Template.Spec.Containers[0].Command = []string{
+				"/csi-tencentcloud-cbs",
+			}
 		}
+	} else {
+		klog.Warningf("invalid csi version: %+v", curVersion)
 	}
 
 	tencentInfo, err := e.getTencentInfo(csiDeploy)
@@ -202,14 +209,10 @@ func (e *tencentCloudEnhancer) getTencentInfo(csiDeploy *csiv1.CSI) (*tencentClo
 		secretKey = e.config.SecretKey
 	}
 
-	if len(secretID) > 0 && len(secretKey) > 0 {
-		return &tencentCloudInfo{
-			SecretID:  secretID,
-			SecretKey: secretKey,
-		}, nil
-	}
-
-	return nil, fmt.Errorf("no tencent info found in csiDeploy.Spec.Parameters: %v", csiDeploy.Spec.Parameters)
+	return &tencentCloudInfo{
+		SecretID:  secretID,
+		SecretKey: secretKey,
+	}, nil
 }
 
 // generateSecretAndSCs generates secrets and StorageClasses needed by TencentCloud storage.

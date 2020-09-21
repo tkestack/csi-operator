@@ -74,9 +74,12 @@ type CSIVersion string
 
 const (
 	// CSIVersionV0 indicates the 0.3.0 version of CSI.
-	CSIVersionV0 = "v0"
+	CSIVersionV0 = "v0.0"
 	// CSIVersionV1 indicates the 1.x version of CSI.
-	CSIVersionV1 = "v1"
+	CSIVersionV1 = "v1.0"
+	// CSIVersionV1p1 indicates the 1.1+ version of CSI in tencent cloud cvm,
+	// which does not need to use secret id and key.
+	CSIVersionV1p1 = "v1.1"
 )
 
 // CSIDriverTemplate is the definition of the Driver container.
