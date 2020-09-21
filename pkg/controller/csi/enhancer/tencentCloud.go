@@ -33,6 +33,13 @@ import (
 const (
 	secretID  = "secretID"
 	secretKey = "secretKey"
+
+	// TencentCloudAPISecretID represents the name of tencent cloud secret id's environment variable,
+	// which used in tencent cloud's csi plugin.
+	TencentCloudAPISecretID = "TENCENTCLOUD_CBS_API_SECRET_ID"
+	// TencentCloudAPISecretKey represents the name of tencent cloud secret key's environment variable,
+	// which used in tencent cloud's csi plugin.
+	TencentCloudAPISecretKey = "TENCENTCLOUD_CBS_API_SECRET_KEY"
 )
 
 // tencentCloudInfo if a set of information of TencentCloud secrets.
@@ -137,24 +144,24 @@ func (e *tencentCloudEnhancer) generateDriverTemplate(
 						},
 						Env: []corev1.EnvVar{
 							{
-								Name: "TENCENTCLOUD_CBS_API_SECRET_ID",
+								Name: TencentCloudAPISecretID,
 								ValueFrom: &corev1.EnvVarSource{
 									SecretKeyRef: &corev1.SecretKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: getSecretName(csiDeploy),
 										},
-										Key: "TENCENTCLOUD_CBS_API_SECRET_ID",
+										Key: TencentCloudAPISecretID,
 									},
 								},
 							},
 							{
-								Name: "TENCENTCLOUD_CBS_API_SECRET_KEY",
+								Name: TencentCloudAPISecretKey,
 								ValueFrom: &corev1.EnvVarSource{
 									SecretKeyRef: &corev1.SecretKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
 											Name: getSecretName(csiDeploy),
 										},
-										Key: "TENCENTCLOUD_CBS_API_SECRET_KEY",
+										Key: TencentCloudAPISecretKey,
 									},
 								},
 							},
@@ -228,8 +235,8 @@ func (e *tencentCloudEnhancer) generateSecretAndSCs(
 	}
 
 	secret.Data = map[string][]byte{
-		"TENCENTCLOUD_CBS_API_SECRET_ID":  secretID,
-		"TENCENTCLOUD_CBS_API_SECRET_KEY": secretKey,
+		TencentCloudAPISecretID:  secretID,
+		TencentCloudAPISecretKey: secretKey,
 	}
 
 	// Generate storageClasses.
