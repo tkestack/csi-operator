@@ -414,6 +414,7 @@ func (r *ReconcileCSI) generateProvisioner(csiDeploy *csiv1.CSI) corev1.Containe
 			"--v=5",
 			"--csi-address=$(ADDRESS)",
 			"--enable-leader-election=true",
+			"--feature-gates=Topology=true",
 		},
 		Resources:    csiDeploy.Spec.Controller.Provisioner.Resources,
 		Env:          sidecarEnvs(),
