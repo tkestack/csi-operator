@@ -239,6 +239,11 @@ func provisionerPolicyRules() []rbacv1.PolicyRule {
 			Resources: []string{"storageclasses"},
 			Verbs:     []string{"get", "list", "watch"},
 		},
+		{
+			APIGroups: []string{"storage.k8s.io"},
+			Resources: []string{"csinodes"},
+			Verbs:     []string{"get", "list", "watch"},
+		},
 	}
 }
 

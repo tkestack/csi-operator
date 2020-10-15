@@ -108,7 +108,7 @@ var csiVersionMap = map[string]map[csiv1.CSIVersion]*csiVersion{
 			Driver:        "csi-tencentcloud-cbs:v0.2.1",
 		},
 		csiv1.CSIVersionV1: {
-			Provisioner:   "csi-provisioner:v1.6.0",
+			Provisioner:   "csi-provisioner:v1.2.0",
 			Attacher:      "csi-attacher:v1.1.0",
 			Snapshotter:   "csi-snapshotter:v1.2.2",
 			NodeRegistrar: "csi-node-driver-registrar:v1.1.0",
@@ -116,7 +116,7 @@ var csiVersionMap = map[string]map[csiv1.CSIVersion]*csiVersion{
 			Resizer:       "csi-resizer:v0.5.0",
 		},
 		csiv1.CSIVersionV1p1: {
-			Provisioner:   "csi-provisioner:v1.6.0",
+			Provisioner:   "csi-provisioner:v1.2.0",
 			Attacher:      "csi-attacher:v1.1.0",
 			Snapshotter:   "csi-snapshotter:v1.2.2",
 			NodeRegistrar: "csi-node-driver-registrar:v1.1.0",
