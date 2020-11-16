@@ -31,6 +31,8 @@ type Config struct {
 	RegistryDomain string
 	// Supported file system for block storage, such as CephRBD, CBS.
 	Filesystems string
+	// NeedDefaultSC indicates whether the cluster need to create default storage classes.
+	NeedDefaultSc bool
 }
 
 // AddFlags add the configurations to global flag.
@@ -41,6 +43,8 @@ func (config *Config) AddFlags() {
 		"ccr.ccs.tencentyun.com/tke3/library", "Domain of the image registry")
 	flag.StringVar(&config.Filesystems, "file-systems",
 		"xfs,ext4", "Supported file systems for well known block volumes")
+	flag.BoolVar(&config.NeedDefaultSc, "need-default-sc", true,
+		"NeedDefaultSC indicates whether the cluster need to create default storage classes")
 	config.CephConfig.AddFlags()
 	config.TencentCloudConfig.AddFlags()
 }
