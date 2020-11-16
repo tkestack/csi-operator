@@ -51,6 +51,10 @@ func (r *ReconcileCSI) syncStorageClasses(csiDeploy *csiv1.CSI) (bool, error) {
 		errs    types.ErrorList
 	)
 
+	if !r.config.NeedDefaultSc {
+		csiDeploy.Spec.StorageClasses = []storagev1.StorageClass{}
+	}
+
 	for _, sc := range csiDeploy.Spec.StorageClasses {
 		exist := existSCSet[sc.Name]
 		delete(existSCSet, sc.Name)
