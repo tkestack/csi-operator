@@ -248,8 +248,9 @@ func (e *tencentCloudEnhancer) generateSecretAndSCs(
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cbs-basic-prepaid",
 		},
-		Provisioner:   csiDeploy.Spec.DriverName,
-		ReclaimPolicy: &reclaimPolicy,
+		AllowVolumeExpansion: boolPtr(true),
+		Provisioner:          csiDeploy.Spec.DriverName,
+		ReclaimPolicy:        &reclaimPolicy,
 		Parameters: map[string]string{
 			"diskType":                    "CLOUD_BASIC",
 			"diskChargeType":              "PREPAID",
@@ -261,8 +262,9 @@ func (e *tencentCloudEnhancer) generateSecretAndSCs(
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cbs-premium",
 		},
-		Provisioner:   csiDeploy.Spec.DriverName,
-		ReclaimPolicy: &reclaimPolicy,
+		AllowVolumeExpansion: boolPtr(true),
+		Provisioner:          csiDeploy.Spec.DriverName,
+		ReclaimPolicy:        &reclaimPolicy,
 		Parameters: map[string]string{
 			"diskType": "CLOUD_PREMIUM",
 		},
@@ -271,8 +273,9 @@ func (e *tencentCloudEnhancer) generateSecretAndSCs(
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cbs-ssd",
 		},
-		Provisioner:   csiDeploy.Spec.DriverName,
-		ReclaimPolicy: &reclaimPolicy,
+		AllowVolumeExpansion: boolPtr(true),
+		Provisioner:          csiDeploy.Spec.DriverName,
+		ReclaimPolicy:        &reclaimPolicy,
 		Parameters: map[string]string{
 			"diskType": "CLOUD_SSD",
 		},
