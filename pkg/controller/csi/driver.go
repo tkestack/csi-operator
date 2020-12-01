@@ -127,6 +127,12 @@ func (r *ReconcileCSI) generateNodeDriver(csiDeploy *csiv1.CSI) *appsv1.DaemonSe
 		// Inject LivenessProbe container.
 		template.Spec.Containers = append(template.Spec.Containers, r.generateLivenessProbe(csiDeploy, false))
 	}
+	// Set tolerations for csi-node
+	template.Spec.Tolerations = []corev1.Toleration{
+		{
+			Operator: corev1.TolerationOpExists,
+		},
+	}
 	// Inject CSI and kubelet related volumes.
 	template.Spec.Volumes = append(template.Spec.Volumes, r.generateNodeDriverVolumes(csiDeploy)...)
 	// Inject volumeMounts into driver container.
