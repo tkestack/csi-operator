@@ -120,7 +120,7 @@ var csiVersionMap = map[string]map[csiv1.CSIVersion]*csiVersion{
 			Attacher:      "csi-attacher:v1.1.0",
 			Snapshotter:   "csi-snapshotter:v1.2.2",
 			NodeRegistrar: "csi-node-driver-registrar:v1.1.0",
-			Driver:        "csi-tencentcloud-cbs:de3a7c0",
+			Driver:        "csi-tencentcloud-cbs:v1.2.0",
 			Resizer:       "csi-resizer:v0.5.0",
 		},
 	},
