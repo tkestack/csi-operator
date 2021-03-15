@@ -38,10 +38,10 @@ const (
 
 	// TencentCloudAPISecretID represents the name of tencent cloud secret id's environment variable,
 	// which used in tencent cloud's csi plugin.
-	TencentCloudAPISecretID = "TENCENTCLOUD_CBS_API_SECRET_ID"
+	TencentCloudAPISecretID = "TENCENTCLOUD_API_SECRET_ID"
 	// TencentCloudAPISecretKey represents the name of tencent cloud secret key's environment variable,
 	// which used in tencent cloud's csi plugin.
-	TencentCloudAPISecretKey = "TENCENTCLOUD_CBS_API_SECRET_KEY"
+	TencentCloudAPISecretKey = "TENCENTCLOUD_API_SECRET_KEY"
 )
 
 // tencentCloudInfo if a set of information of TencentCloud secrets.
