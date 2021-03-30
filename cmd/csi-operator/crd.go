@@ -41,6 +41,7 @@ var schema = &extensionsv1beta1.JSONSchemaProps{
 			Properties: map[string]extensionsv1beta1.JSONSchemaProps{
 				"controller":     {Type: "object"},
 				"driverName":     {Type: "string"},
+				"driverVersion":  {Type: "string"},
 				"node":           {Type: "object"},
 				"secrets":        {Type: "array"},
 				"storageClasses": {Type: "array"},
