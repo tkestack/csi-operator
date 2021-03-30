@@ -54,6 +54,9 @@ type CSISpec struct {
 	// be override by the name of driver.
 	// +optional
 	StorageClasses []storagev1.StorageClass `json:"storageClasses,omitempty" protobuf:"bytes,8,opt,name=storageClasses"`
+	// DriverVersion specifies the specific version of the CSI Driver
+	// +optional
+	DriverVersion string `json:"driverVersion,omitempty" protobuf:"bytes,9,opt,name=driverVersion"`
 }
 
 const (

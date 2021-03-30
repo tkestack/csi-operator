@@ -235,5 +235,9 @@ func getCSIVersion(csiDeploy *csiv1.CSI) (*csiVersion, error) {
 		return nil, fmt.Errorf("unknown CSI version %s", csiDeploy.Spec.Version)
 	}
 
+	if len(csiDeploy.Spec.DriverVersion) > 0 {
+		csiVersion.Driver = csiDeploy.Spec.DriverVersion
+	}
+
 	return csiVersion, nil
 }
