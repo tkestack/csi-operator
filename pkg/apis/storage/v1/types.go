@@ -57,6 +57,9 @@ type CSISpec struct {
 	// DriverVersion specifies the specific version of the CSI Driver
 	// +optional
 	DriverVersion string `json:"driverVersion,omitempty" protobuf:"bytes,9,opt,name=driverVersion"`
+	// ConfigMaps used by csi drivers
+	// +optional
+	ConfigMaps []corev1.ConfigMap `json:"configMaps,omitempty" protobuf:"bytes,10,opt,name=configMaps"`
 }
 
 const (

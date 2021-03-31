@@ -18,7 +18,9 @@
 package enhancer
 
 import (
+	"encoding/json"
 	"fmt"
+	"k8s.io/klog"
 	"strings"
 
 	csiv1 "tkestack.io/csi-operator/pkg/apis/storage/v1"
@@ -39,6 +41,8 @@ const (
 	adminKeyringKey = "adminKey"
 	// Key used to specify ceph pools in StorageClass.
 	poolsKey = "pools"
+	// Key used to specify ceph config used by ceph-csi of cephFS versions 3.2.0 and above.
+	configsKey = "configs"
 )
 
 var (
@@ -192,10 +196,18 @@ func (e *cephEnhancer) enhanceCephFS(csiDeploy *csiv1.CSI) error {
 	// Fill DriverTemplate.
 	e.generateCephFSDriverTemplate(csiVersion, csiDeploy)
 
-	// Fill ceph related information.
-	cephInfo := e.getCephInfo(csiDeploy)
-	if cephInfo != nil {
-		csiDeploy.Spec.Secrets, csiDeploy.Spec.StorageClasses = e.enhanceCephSecretAndStorageClasses(csiDeploy, cephInfo)
+	if csiDeploy.Spec.Version == csiv1.CSIVersionV0 {
+		// Fill ceph related information.
+		cephInfo := e.getCephInfo(csiDeploy)
+		if cephInfo != nil {
+			csiDeploy.Spec.Secrets, csiDeploy.Spec.StorageClasses = e.enhanceCephSecretAndStorageClasses(csiDeploy, cephInfo)
+		}
+	} else {
+		cephConfigs := e.getCephConfigs(csiDeploy)
+		if cephConfigs != nil {
+			csiDeploy.Spec.Secrets, csiDeploy.Spec.StorageClasses, csiDeploy.Spec.ConfigMaps =
+				e.enhanceCephSecretsStorageClassesAndConfigMap(csiDeploy, cephConfigs)
+		}
 	}
 
 	return nil
@@ -247,14 +259,40 @@ func (e *cephEnhancer) generateCephFSDriverTemplate(
 	if csiDeploy.Spec.Version == csiv1.CSIVersionV1 {
 		spec := &csiDeploy.Spec.DriverTemplate.Template.Spec
 		spec.Volumes = append(spec.Volumes, corev1.Volume{
-			Name:         "mount-cache-dir",
-			VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+			Name: "ceph-csi-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: getConfigMapName(csiDeploy),
+					},
+				},
+			},
+		}, corev1.Volume{
+			Name: "keys-tmp-dir",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					Medium: corev1.StorageMediumMemory,
+				},
+			},
 		})
 
 		container := &spec.Containers[0]
-		container.Args = append(container.Args, "--mountcachedir=/mount-cache-dir")
+		container.Args = []string{
+			"--nodeid=$(NODE_ID)",
+			"--endpoint=$(CSI_ENDPOINT)",
+			"--v=5",
+			"--drivername=" + csiDeploy.Spec.DriverName,
+			"--type=cephfs",
+		}
+		container.Env = append(container.Env, corev1.EnvVar{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{FieldPath: "status.podIP"},
+			},
+		})
 		container.VolumeMounts = append(container.VolumeMounts,
-			corev1.VolumeMount{Name: "mount-cache-dir", MountPath: "/mount-cache-dir"})
+			corev1.VolumeMount{Name: "ceph-csi-config", MountPath: "/etc/ceph-csi-config/"},
+			corev1.VolumeMount{Name: "keys-tmp-dir", MountPath: "/tmp/csi/keys"})
 	}
 }
 
@@ -323,6 +361,114 @@ func (e *cephEnhancer) enhanceCephSecretAndStorageClasses(
 	return []corev1.Secret{secret}, e.getStorageClassesWithFS(csiDeploy.Spec.DriverName, scList)
 }
 
+// 1. Generate a Secret to hold ceph secret information
+// 2. Create a StorageClass for each pool and file system
+// 3. Create a ConfigMap holds ceph clusters' information
+func (e *cephEnhancer) enhanceCephSecretsStorageClassesAndConfigMap(
+	csiDeploy *csiv1.CSI,
+	cephConfigs []cephConfig) ([]corev1.Secret, []storagev1.StorageClass, []corev1.ConfigMap) {
+	secrets := make([]corev1.Secret, 0)
+	storageClasses := make([]storagev1.StorageClass, 0)
+	cephDriverConfigs := make([]cephDriverConfig, 0)
+	for _, conf := range cephConfigs {
+		// Generate secret.
+		secretName := fmt.Sprintf("%s-%s", getSecretName(csiDeploy), conf.ClusterID)
+		secret := corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: csiDeploy.Namespace,
+			},
+		}
+		adminKey := []byte(conf.AdminKey)
+		switch csiDeploy.Spec.DriverName {
+		case csiv1.CSIDriverCephFS:
+			secret.Data = map[string][]byte{
+				"adminKey": adminKey,
+				"adminID":  []byte(conf.AdminID),
+			}
+		case csiv1.CSIDriverCephRBD:
+			secret.Data = map[string][]byte{conf.AdminID: adminKey}
+		}
+		secrets = append(secrets, secret)
+
+		// Generate storageClasses.
+		reclaimPolicy := corev1.PersistentVolumeReclaimDelete
+		pools := strings.Split(conf.Pools, ",")
+		if len(conf.FSName) == 0 {
+			conf.FSName = "cephfs"
+		}
+		for _, pool := range pools {
+			sc := storagev1.StorageClass{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("%s-%s-%s", csiDeploy.Spec.DriverName, conf.ClusterID, pool),
+				},
+				Provisioner:   csiDeploy.Spec.DriverName,
+				ReclaimPolicy: &reclaimPolicy,
+				Parameters: map[string]string{
+					"pool":      pool,
+					"adminid":   conf.AdminID,
+					"userid":    conf.AdminID,
+					"clusterID": conf.ClusterID,
+					"fsName":    conf.FSName,
+
+					provisionerSecretKey[csiDeploy.Spec.Version].Name:      secretName,
+					provisionerSecretKey[csiDeploy.Spec.Version].Namespace: secret.Namespace,
+
+					nodeSecretKey[csiDeploy.Spec.Version][csiDeploy.Spec.DriverName].Name:      secretName,
+					nodeSecretKey[csiDeploy.Spec.Version][csiDeploy.Spec.DriverName].Namespace: secret.Namespace,
+				},
+			}
+
+			if csiDeploy.Spec.DriverName == csiv1.CSIDriverCephRBD {
+				sc.Parameters["imageFormat"] = "2"
+			}
+			if csiDeploy.Spec.DriverName == csiv1.CSIDriverCephFS {
+				sc.Parameters["provisionVolume"] = "true"
+			}
+
+			storageClasses = append(storageClasses, sc)
+
+			// convert cephConfig to cephDriverConfig
+			driverConf := cephDriverConfig{
+				ClusterID: conf.ClusterID,
+				Monitors:  strings.Split(conf.Monitors, ","),
+			}
+			if len(conf.SubVolumeGroup) != 0 {
+				driverConf.CephFS = &cephFSDriverConfig{
+					SubVolumeGroup: conf.SubVolumeGroup,
+				}
+			}
+			cephDriverConfigs = append(cephDriverConfigs, driverConf)
+		}
+	}
+
+	if len(storageClasses) == 1 {
+		storageClasses[0].Name = csiDeploy.Spec.DriverName
+	}
+
+	// Generate configMap.
+	configMapName := getConfigMapName(csiDeploy)
+	configMap := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: csiDeploy.Namespace,
+		},
+	}
+
+	if body, err := json.Marshal(cephDriverConfigs); err == nil {
+		configMap.Data = map[string]string{
+			"config.json": string(body),
+		}
+	} else {
+		klog.Warningf("marshal cephDriverConfigs failed: %v", err)
+		configMap.Data = map[string]string{
+			"config.json": "[]",
+		}
+	}
+
+	return secrets, e.getStorageClassesWithFS(csiDeploy.Spec.DriverName, storageClasses), []corev1.ConfigMap{configMap}
+}
+
 // Only used for Ceph RBD.
 func (e *cephEnhancer) getStorageClassesWithFS(
 	typ string,
@@ -352,6 +498,44 @@ type cephInfo struct {
 	AdminID  string
 	AdminKey string
 	Pools    []string
+}
+
+// cephConfig is a set of information of CephFS Cluster used by ceph-csi versions 3.2.0 and above.
+type cephConfig struct {
+	Monitors       string `json:"monitors"`
+	AdminID        string `json:"adminID"`
+	AdminKey       string `json:"adminKey"`
+	Pools          string `json:"pools"`
+	ClusterID      string `json:"clusterID"`
+	FSName         string `json:"fsName"`
+	SubVolumeGroup string `json:"subvolumeGroup"`
+}
+
+// cephDriverConfig is a set of information of Ceph Cluster stored in ConfigMap and
+// used by ceph-csi versions 3.2.0 and above.
+type cephDriverConfig struct {
+	ClusterID string              `json:"clusterID"`
+	Monitors  []string            `json:"monitors"`
+	CephFS    *cephFSDriverConfig `json:"cephFS,omitempty"`
+}
+
+// cephFSDriverConfig is a set of information of CephFS Cluster stored in ConfigMap and
+// used by ceph-csi versions 3.2.0 and above.
+type cephFSDriverConfig struct {
+	SubVolumeGroup string `json:"subvolumeGroup"`
+}
+
+// If Ceph related information specified in CSI, use it. Otherwise use configured information.
+func (e *cephEnhancer) getCephConfigs(csiDeploy *csiv1.CSI) []cephConfig {
+	configBody := csiDeploy.Spec.Parameters[configsKey]
+	cephConfigs := make([]cephConfig, 0)
+	err := json.Unmarshal([]byte(configBody), &cephConfigs)
+	if err != nil {
+		klog.Warningf("parse cephFS's config failed: %+v", err)
+		return nil
+	}
+
+	return cephConfigs
 }
 
 // If Ceph related information specified in CSI, use it. Otherwise use configured information.

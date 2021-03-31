@@ -183,6 +183,11 @@ func getSecretName(csiDeploy *csiv1.CSI) string {
 	return csiDeploy.Spec.DriverName + "-secret"
 }
 
+// getConfigMapName returns a name for secret.
+func getConfigMapName(csiDeploy *csiv1.CSI) string {
+	return csiDeploy.Spec.DriverName + "-conf"
+}
+
 // enhanceExternalComponents enhances information of each CSI components.
 func enhanceExternalComponents(globalConfig *config.Config, csiDeploy *csiv1.CSI, csiVersion *csiVersion) {
 	hasController := false
