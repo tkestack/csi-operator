@@ -190,6 +190,20 @@ func (e *cephEnhancer) enhanceCephFS(csiDeploy *csiv1.CSI) error {
 	}
 
 	// Fill DriverTemplate.
+	e.generateCephFSDriverTemplate(csiVersion, csiDeploy)
+
+	// Fill ceph related information.
+	cephInfo := e.getCephInfo(csiDeploy)
+	if cephInfo != nil {
+		csiDeploy.Spec.Secrets, csiDeploy.Spec.StorageClasses = e.enhanceCephSecretAndStorageClasses(csiDeploy, cephInfo)
+	}
+
+	return nil
+}
+
+func (e *cephEnhancer) generateCephFSDriverTemplate(
+	csiVersion *csiVersion,
+	csiDeploy *csiv1.CSI) {
 	csiDeploy.Spec.DriverTemplate = &csiv1.CSIDriverTemplate{
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
@@ -242,14 +256,6 @@ func (e *cephEnhancer) enhanceCephFS(csiDeploy *csiv1.CSI) error {
 		container.VolumeMounts = append(container.VolumeMounts,
 			corev1.VolumeMount{Name: "mount-cache-dir", MountPath: "/mount-cache-dir"})
 	}
-
-	// Fill ceph related information.
-	cephInfo := e.getCephInfo(csiDeploy)
-	if cephInfo != nil {
-		csiDeploy.Spec.Secrets, csiDeploy.Spec.StorageClasses = e.enhanceCephSecretAndStorageClasses(csiDeploy, cephInfo)
-	}
-
-	return nil
 }
 
 // 1. Generate a Secret to hold ceph secret information
