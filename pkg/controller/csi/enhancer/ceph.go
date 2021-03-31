@@ -47,6 +47,26 @@ const (
 
 var (
 	// These keys used to specify specific parameters in StorageClass.
+	controllerExpandSecretKey = map[csiv1.CSIVersion]keySet{
+		csiv1.CSIVersionV1: {
+			Name:      "csi.storage.k8s.io/controller-expand-secret-name",
+			Namespace: "csi.storage.k8s.io/controller-expand-secret-namespace",
+		},
+		csiv1.CSIVersionV0: {
+			Name:      "csiControllerExpandSecretName",
+			Namespace: "csiControllerExpandSecretNamespace",
+		},
+	}
+	controllerPublishSecretKey = map[csiv1.CSIVersion]keySet{
+		csiv1.CSIVersionV1: {
+			Name:      "csi.storage.k8s.io/controller-publish-secret-name",
+			Namespace: "csi.storage.k8s.io/controller-publish-secret-namespace",
+		},
+		csiv1.CSIVersionV0: {
+			Name:      "csiControllerPublishSecretName",
+			Namespace: "csiControllerPublishSecretNamespace",
+		},
+	}
 	provisionerSecretKey = map[csiv1.CSIVersion]keySet{
 		csiv1.CSIVersionV1: {
 			Name:      "csi.storage.k8s.io/provisioner-secret-name",
@@ -399,6 +419,7 @@ func (e *cephEnhancer) enhanceCephSecretsStorageClassesAndConfigMap(
 		}
 		for _, pool := range pools {
 			sc := storagev1.StorageClass{
+				AllowVolumeExpansion: boolPtr(true),
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("%s-%s-%s", csiDeploy.Spec.DriverName, conf.ClusterID, pool),
 				},
@@ -410,6 +431,12 @@ func (e *cephEnhancer) enhanceCephSecretsStorageClassesAndConfigMap(
 					"userid":    conf.AdminID,
 					"clusterID": conf.ClusterID,
 					"fsName":    conf.FSName,
+
+					controllerPublishSecretKey[csiDeploy.Spec.Version].Name:      secretName,
+					controllerPublishSecretKey[csiDeploy.Spec.Version].Namespace: secret.Namespace,
+
+					controllerExpandSecretKey[csiDeploy.Spec.Version].Name:      secretName,
+					controllerExpandSecretKey[csiDeploy.Spec.Version].Namespace: secret.Namespace,
 
 					provisionerSecretKey[csiDeploy.Spec.Version].Name:      secretName,
 					provisionerSecretKey[csiDeploy.Spec.Version].Namespace: secret.Namespace,
