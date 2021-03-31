@@ -63,7 +63,7 @@ const (
 	// CSIDriverCephRBD indicates the CephRBD storage type.
 	CSIDriverCephRBD = "csi-rbd"
 	// CSIDriverCephFS indicates the CephFS storage type.
-	CSIDriverCephFS = "csi-cephfs"
+	CSIDriverCephFS = "cephfs.csi.ceph.com"
 	// CSIDriverTencentCBS indicates the Tencent Cloud CBS storage type.
 	CSIDriverTencentCBS = "com.tencent.cloud.csi.cbs"
 	// CSIDriverTencentCOS indicates the Tencent Cloud COS storage type.
