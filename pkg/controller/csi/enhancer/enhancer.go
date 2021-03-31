@@ -91,13 +91,12 @@ var csiVersionMap = map[string]map[csiv1.CSIVersion]*csiVersion{
 			Driver:        "cephfsplugin:v0.3.0",
 		},
 		csiv1.CSIVersionV1: {
-			Provisioner:   "csi-provisioner:v1.0.1",
+			Provisioner:   "csi-provisioner:v1.3.0",
 			Attacher:      "csi-attacher:v1.1.0",
 			LivenessProbe: "livenessprobe:v1.1.0",
 			NodeRegistrar: "csi-node-driver-registrar:v1.1.0",
 			Driver:        "cephfsplugin:v1.0.0",
-			// TODO: Add resizer.
-			// Resizer:          "v0.1.0",
+			Resizer:       "csi-resizer:v0.5.0",
 		},
 	},
 	csiv1.CSIDriverTencentCBS: {
@@ -180,12 +179,12 @@ func boolPtr(value bool) *bool {
 
 // getSecretName returns a name for secret.
 func getSecretName(csiDeploy *csiv1.CSI) string {
-	return csiDeploy.Spec.DriverName + "-secret"
+	return strings.ReplaceAll(csiDeploy.Spec.DriverName+"-secret", ".", "-")
 }
 
 // getConfigMapName returns a name for secret.
 func getConfigMapName(csiDeploy *csiv1.CSI) string {
-	return csiDeploy.Spec.DriverName + "-conf"
+	return strings.ReplaceAll(csiDeploy.Spec.DriverName+"-conf", ".", "-")
 }
 
 // enhanceExternalComponents enhances information of each CSI components.
