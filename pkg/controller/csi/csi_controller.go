@@ -244,6 +244,12 @@ func (r *ReconcileCSI) syncCSI(csiDeploy *csiv1.CSI) error {
 		r.recorder.Event(csiDeploy, corev1.EventTypeNormal, types.StorageClassesSynced, "StorageClasses has been synced")
 	}
 
+	if updated, err := r.syncConfigMaps(csiDeploy); err != nil {
+		errs = append(errs, err)
+	} else if updated {
+		r.recorder.Event(csiDeploy, corev1.EventTypeNormal, types.ConfigMapsSynced, "ConfigMaps have been synced")
+	}
+
 	var children []csiv1.Generation
 
 	nodeDriver, updated, nodeSyncErr := r.syncNodeDriver(csiDeploy)

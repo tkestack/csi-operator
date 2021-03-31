@@ -28,6 +28,8 @@ const (
 	SecretsSynced = "SecretsSynced"
 	// StorageClassesSynced means the storageClasses has been synced.
 	StorageClassesSynced = "StorageClassesSynced"
+	// ConfigMapsSynced means the configMaps have been synced.
+	ConfigMapsSynced = "ConfigMapsSynced"
 	// NodeDriverSynced means the node driver daemonSet has been synced.
 	NodeDriverSynced = "NodeDriverSynced"
 	// ControllerDriverSynced means the controller driver daemonSet has been synced.
