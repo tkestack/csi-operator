@@ -256,6 +256,13 @@ func (in *CSISpec) DeepCopyInto(out *CSISpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.ConfigMaps != nil {
+		in, out := &in.ConfigMaps, &out.ConfigMaps
+		*out = make([]corev1.ConfigMap, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	return
 }
 
