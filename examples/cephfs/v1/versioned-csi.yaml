@@ -4,7 +4,24 @@ metadata:
   name: cephfs
   namespace: kube-system
 spec:
-  driverName: csi-cephfs
-  version: "v1"
+  driverName: cephfs.csi.ceph.com
+  version: "v1.0"
   parameters:
-    pools: myfs-data0
+    configs: |-
+      [{
+          "clusterID": "cluster1",
+          "pools": "00000001-fs.data",
+          "fsName": "00000001-fs",
+          "adminID": "admin",
+          "adminKey": "key",
+          "monitors": "192.168.0.1:6789,192.168.0.2:6789,192.168.0.3:6789",
+          "subvolumeGroup": "group1"
+      }, {
+          "clusterID": "cluster2",
+          "pools": "00000001-fs.data",
+          "fsName": "00000001-fs",
+          "adminID": "admin",
+          "adminKey": "key",
+          "monitors": "192.168.0.4:6789,192.168.0.5:6789,192.168.0.6:6789",
+          "subvolumeGroup": "group2"
+      }]

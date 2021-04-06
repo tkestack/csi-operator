@@ -1,114 +1,203 @@
 apiVersion: storage.tkestack.io/v1
 kind: CSI
 metadata:
+  finalizers:
+    - storage.tkestack.io
+  generation: 3
   name: cephfs
   namespace: kube-system
 spec:
-  driverName: csi-cephfs
-  driverTemplate:
-    template:
-      spec:
-        hostNetwork: true
-        # to use e.g. Rook orchestrated cluster, and mons' FQDN is
-        # resolved through k8s service, set dns policy to cluster first
-        dnsPolicy: ClusterFirstWithHostNet
-        containers:
-        - name: csi-cephfs
-          securityContext:
-            privileged: true
-            capabilities:
-              add: ["SYS_ADMIN"]
-            allowPrivilegeEscalation: true
-          image: quay.io/cephcsi/cephfsplugin:v1.0.0
-          args:
-            - "--nodeid=$(NODE_ID)"
-            - "--endpoint=$(CSI_ENDPOINT)"
-            - "--v=5"
-            - "--drivername=csi-cephfs"
-            - "--metadatastorage=k8s_configmap"
-            - "--mountcachedir=/mount-cache-dir"
-          env:
-            - name: NODE_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-          imagePullPolicy: "IfNotPresent"
-          volumeMounts:
-            - name: mount-cache-dir
-              mountPath: /mount-cache-dir
-            - name: host-sys
-              mountPath: /sys
-            - name: lib-modules
-              mountPath: /lib/modules
-              readOnly: true
-            - name: host-dev
-              mountPath: /dev
-        volumes:
-        - name: mount-cache-dir
-          emptyDir: {}
-        - name: host-sys
-          hostPath:
-            path: /sys
-        - name: lib-modules
-          hostPath:
-            path: /lib/modules
-        - name: host-dev
-          hostPath:
-            path: /dev
-  node:
-    nodeRegistrar:
-      image: quay.io/k8scsi/csi-node-driver-registrar:v1.1.0
-    livenessProbe:
-      image: quay.io/k8scsi/livenessprobe:v1.1.0
-      parameters:
-        storage.tkestack.io/liveness-probe-port: "9819"
+  configMaps:
+    - data:
+        config.json: '[{"clusterID":"cluster1","monitors":["192.168.0.1:6789","192.168.0.2:6789","192.168.0.3:6789"],"cephFS":{"subvolumeGroup":"group1"}},{"clusterID":"cluster2","monitors":["192.168.0.4:6789","192.168.0.5:6789","192.168.0.6:6789"],"cephFS":{"subvolumeGroup":"group2"}}]'
+      metadata:
+        creationTimestamp: null
+        name: cephfs-csi-ceph-com-conf
+        namespace: kube-system
   controller:
-    replicas: 1
-    provisioner:
-      image: quay.io/k8scsi/csi-provisioner:v1.0.1
-      resources:
-        limits:
-          "cpu": 100m
-          "memory": 100Mi
     attacher:
-      image: quay.io/k8scsi/csi-attacher:v1.1.0
+      image: mirrors.tencent.com/tkestack/csi-attacher:v1.1.0
+      parameters: null
       resources:
         limits:
-          "cpu": 100m
-          "memory": 100Mi
-    clusterRegistrar:
-      image: quay.io/k8scsi/csi-cluster-driver-registrar:canary
+          cpu: 100m
+          memory: 100Mi
+    clusterRegistrar: null
     livenessProbe:
-      image: quay.io/k8scsi/livenessprobe:v1.1.0
+      image: mirrors.tencent.com/tkestack/livenessprobe:v1.1.0
       parameters:
         storage.tkestack.io/liveness-probe-port: "9818"
+      resources: {}
+    provisioner:
+      image: mirrors.tencent.com/tkestack/csi-provisioner:v1.3.0
+      parameters: null
+      resources:
+        limits:
+          cpu: 100m
+          memory: 100Mi
+    replicas: 1
+    resizer:
+      image: mirrors.tencent.com/tkestack/csi-resizer:v0.5.0
+      parameters: null
+      resources:
+        limits:
+          cpu: 100m
+          memory: 100Mi
+    snapshotter: null
+  driverName: cephfs.csi.ceph.com
+  driverTemplate:
+    template:
+      metadata:
+        creationTimestamp: null
+      spec:
+        containers:
+          - args:
+              - --nodeid=$(NODE_ID)
+              - --endpoint=$(CSI_ENDPOINT)
+              - --v=5
+              - --drivername=cephfs.csi.ceph.com
+              - --type=cephfs
+            env:
+              - name: NODE_ID
+                valueFrom:
+                  fieldRef:
+                    fieldPath: spec.nodeName
+              - name: POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+            image: mirrors.tencent.com/tkestack/cephcsi:v3.2.0
+            imagePullPolicy: Always
+            name: csi-cephfs
+            resources: {}
+            securityContext:
+              allowPrivilegeEscalation: true
+              capabilities:
+                add:
+                  - SYS_ADMIN
+              privileged: true
+            volumeMounts:
+              - mountPath: /dev
+                name: host-dev
+              - mountPath: /sys
+                name: host-sys
+              - mountPath: /lib/modules
+                name: lib-modules
+                readOnly: true
+              - mountPath: /etc/ceph-csi-config/
+                name: ceph-csi-config
+              - mountPath: /tmp/csi/keys
+                name: keys-tmp-dir
+        dnsPolicy: ClusterFirstWithHostNet
+        hostNetwork: true
+        tolerations:
+          - effect: NoSchedule
+            key: node-role.kubernetes.io/master
+        volumes:
+          - hostPath:
+              path: /dev
+            name: host-dev
+          - hostPath:
+              path: /sys
+            name: host-sys
+          - hostPath:
+              path: /lib/modules
+            name: lib-modules
+          - configMap:
+              name: cephfs-csi-ceph-com-conf
+            name: ceph-csi-config
+          - emptyDir:
+              medium: Memory
+            name: keys-tmp-dir
+  node:
+    livenessProbe:
+      image: mirrors.tencent.com/tkestack/livenessprobe:v1.1.0
+      parameters:
+        storage.tkestack.io/liveness-probe-port: "9819"
+      resources: {}
+    nodeRegistrar:
+      image: mirrors.tencent.com/tkestack/csi-node-driver-registrar:v1.1.0
+      parameters: null
+      resources: {}
+  parameters:
+    configs: |-
+      [{
+          "clusterID": "cluster1",
+          "pools": "00000001-fs.data",
+          "fsName": "00000001-fs",
+          "adminID": "admin",
+          "adminKey": "key",
+          "monitors": "192.168.0.1:6789,192.168.0.2:6789,192.168.0.3:6789",
+          "subvolumeGroup": "group1"
+      }, {
+          "clusterID": "cluster2",
+          "pools": "00000001-fs.data",
+          "fsName": "00000001-fs",
+          "adminID": "admin",
+          "adminKey": "key",
+          "monitors": "192.168.0.4:6789,192.168.0.5:6789,192.168.0.6:6789",
+          "subvolumeGroup": "group2"
+      }]
   secrets:
-  - apiVersion: v1
-    kind: Secret
-    metadata:
-      name: csi-cephfs-secret
-      namespace: kube-system
-    data:
-      adminID: YWRtaW4=
-      adminKey: QVFEMEpkRmNZVGFJT3hBQTNQQzhVeFdEY0Jib2JGQnp3aEMwcnc9PQ==
+    - data:
+        adminID: YWRtaW4=
+        adminKey: a2V5
+      metadata:
+        creationTimestamp: null
+        name: cephfs-csi-ceph-com-secret-cluster1
+        namespace: kube-system
+    - data:
+        adminID: YWRtaW4=
+        adminKey: a2V5
+      metadata:
+        creationTimestamp: null
+        name: cephfs-csi-ceph-com-secret-cluster2
+        namespace: kube-system
   storageClasses:
-  - apiVersion: storage.k8s.io/v1
-    kind: StorageClass
-    metadata:
-       name: csi-cephfs
-    provisioner: csi-cephfs
-    parameters:
-        provisionVolume: "true"
-        monitors: 10.0.0.213:6789,10.0.0.213:3300
-        pool: myfs-data0
-        csi.storage.k8s.io/provisioner-secret-name: csi-cephfs-secret
-        csi.storage.k8s.io/provisioner-secret-namespace: kube-system
-        csi.storage.k8s.io/node-stage-secret-name: csi-cephfs-secret
-        csi.storage.k8s.io/node-stage-secret-namespace: kube-system
+    - allowVolumeExpansion: true
+      metadata:
+        creationTimestamp: null
+        name: cephfs.csi.ceph.com-cluster1-00000001-fs.data
+      parameters:
         adminid: admin
+        clusterID: cluster1
+        csi.storage.k8s.io/controller-expand-secret-name: cephfs-csi-ceph-com-secret-cluster1
+        csi.storage.k8s.io/controller-expand-secret-namespace: kube-system
+        csi.storage.k8s.io/controller-publish-secret-name: cephfs-csi-ceph-com-secret-cluster1
+        csi.storage.k8s.io/controller-publish-secret-namespace: kube-system
+        csi.storage.k8s.io/node-stage-secret-name: cephfs-csi-ceph-com-secret-cluster1
+        csi.storage.k8s.io/node-stage-secret-namespace: kube-system
+        csi.storage.k8s.io/provisioner-secret-name: cephfs-csi-ceph-com-secret-cluster1
+        csi.storage.k8s.io/provisioner-secret-namespace: kube-system
+        fsName: 00000001-fs
+        pool: 00000001-fs.data
+        provisionVolume: "true"
         userid: admin
-    reclaimPolicy: Delete
+      provisioner: cephfs.csi.ceph.com
+      reclaimPolicy: Delete
+    - allowVolumeExpansion: true
+      metadata:
+        creationTimestamp: null
+        name: cephfs.csi.ceph.com-cluster2-00000001-fs.data
+      parameters:
+        adminid: admin
+        clusterID: cluster2
+        csi.storage.k8s.io/controller-expand-secret-name: cephfs-csi-ceph-com-secret-cluster2
+        csi.storage.k8s.io/controller-expand-secret-namespace: kube-system
+        csi.storage.k8s.io/controller-publish-secret-name: cephfs-csi-ceph-com-secret-cluster2
+        csi.storage.k8s.io/controller-publish-secret-namespace: kube-system
+        csi.storage.k8s.io/node-stage-secret-name: cephfs-csi-ceph-com-secret-cluster2
+        csi.storage.k8s.io/node-stage-secret-namespace: kube-system
+        csi.storage.k8s.io/provisioner-secret-name: cephfs-csi-ceph-com-secret-cluster2
+        csi.storage.k8s.io/provisioner-secret-namespace: kube-system
+        fsName: 00000001-fs
+        pool: 00000001-fs.data
+        provisionVolume: "true"
+        userid: admin
+      provisioner: cephfs.csi.ceph.com
+      reclaimPolicy: Delete
+  version: v1.0
