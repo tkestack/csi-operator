@@ -95,7 +95,7 @@ var csiVersionMap = map[string]map[csiv1.CSIVersion]*csiVersion{
 			Attacher:      "csi-attacher:v1.1.0",
 			LivenessProbe: "livenessprobe:v1.1.0",
 			NodeRegistrar: "csi-node-driver-registrar:v1.1.0",
-			Driver:        "cephfsplugin:v1.0.0",
+			Driver:        "cephcsi:v3.2.0",
 			Resizer:       "csi-resizer:v0.5.0",
 		},
 	},
