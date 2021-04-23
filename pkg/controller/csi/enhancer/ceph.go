@@ -239,6 +239,7 @@ func (e *cephEnhancer) generateCephFSDriverTemplate(
 	csiDeploy.Spec.DriverTemplate = &csiv1.CSIDriverTemplate{
 		Template: corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
+				HostPID:     true,
 				HostNetwork: true,
 				DNSPolicy:   corev1.DNSClusterFirstWithHostNet,
 				Tolerations: []corev1.Toleration{
@@ -406,6 +407,10 @@ func (e *cephEnhancer) enhanceCephSecretsStorageClassesAndConfigMap(
 				"adminKey": adminKey,
 				"adminID":  []byte(conf.AdminID),
 			}
+			if conf.UserKey !="" && conf.UserID != "" {
+			    secret.Data["userID"]  = []byte(conf.UserID)
+			    secret.Data["userKey"] = []byte(conf.UserKey)
+			}
 		case csiv1.CSIDriverCephRBD:
 			secret.Data = map[string][]byte{conf.AdminID: adminKey}
 		}
@@ -536,6 +541,8 @@ type cephConfig struct {
 	ClusterID      string `json:"clusterID"`
 	FSName         string `json:"fsName"`
 	SubVolumeGroup string `json:"subvolumeGroup"`
+    UserID         string `json:"userID"`
+    UserKey        string `json:"userKey"`
 }
 
 // cephDriverConfig is a set of information of Ceph Cluster stored in ConfigMap and
