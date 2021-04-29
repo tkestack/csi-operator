@@ -222,7 +222,7 @@ func enhanceExternalComponents(globalConfig *config.Config, csiDeploy *csiv1.CSI
 			}
 		}
 	}
-	if hasController {
+	if hasController && csiDeploy.Spec.Controller.Replicas == 0 {
 		csiDeploy.Spec.Controller.Replicas = 1
 	}
 }
