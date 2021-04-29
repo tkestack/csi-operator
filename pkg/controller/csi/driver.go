@@ -392,6 +392,12 @@ func (r *ReconcileCSI) generateControllerDriver(csiDeploy *csiv1.CSI) *appsv1.De
 
 	// Generate the NodeRegistrar object.
 	replicas := csiDeploy.Spec.Controller.Replicas
+
+	//Inject affinity
+	if replicas > 1 {
+		template.Spec.Affinity = r.generateControllerDriverAffinity(csiDeploy)
+	}
+
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       csiDeploy.Namespace,
@@ -650,6 +656,29 @@ func (r *ReconcileCSI) generateControllerDriverVM(csiDeploy *csiv1.CSI) []corev1
 		{
 			Name:      socketVolumeName,
 			MountPath: filepath.Dir(endpointInsideContainer),
+		},
+	}
+}
+
+// generateControllerDriverAffinity generates the affinity for controller.
+func (r *ReconcileCSI) generateControllerDriverAffinity(csiDeploy *csiv1.CSI) *corev1.Affinity {
+	value := csiDeploy.Name + "-controller"
+	return &corev1.Affinity{
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{
+						MatchExpressions: []metav1.LabelSelectorRequirement{
+							{
+								Key:      controllerDriverLabel,
+								Operator: "In",
+								Values:   []string{value},
+							},
+						},
+					},
+					TopologyKey: "kubernetes.io/hostname",
+				},
+			},
 		},
 	}
 }
