@@ -34,8 +34,8 @@ var (
 	criticalComponents = sets.NewString("Provisioner", "Attacher", "Snapshotter", "Resizer")
 	controllerResource = corev1.ResourceRequirements{
 		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse("100m"),
-			corev1.ResourceMemory: resource.MustParse("100Mi"),
+			corev1.ResourceCPU:    resource.MustParse("1"),
+			corev1.ResourceMemory: resource.MustParse("2Gi"),
 		},
 	}
 	cephRBDLivenessProbePorts    = livenessProbePorts{Node: "9809", Controller: "9808"}
@@ -115,7 +115,7 @@ var csiVersionMap = map[string]map[csiv1.CSIVersion]*csiVersion{
 			Resizer:       "csi-resizer:v0.5.0",
 		},
 		csiv1.CSIVersionV1p1: {
-			Provisioner:   "csi-provisioner:v1.2.0",
+			Provisioner:   "csi-provisioner:v1.6.0",
 			Attacher:      "csi-attacher:v1.1.0",
 			Snapshotter:   "csi-snapshotter:v1.2.2",
 			NodeRegistrar: "csi-node-driver-registrar:v1.1.0",
