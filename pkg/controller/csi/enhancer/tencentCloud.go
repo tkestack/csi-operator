@@ -119,6 +119,7 @@ func (e *tencentCloudEnhancer) generateDriverTemplate(
 	csiDeploy *csiv1.CSI) *csiv1.CSIDriverTemplate {
 	return &csiv1.CSIDriverTemplate{
 		Template: corev1.PodTemplateSpec{
+			ObjectMeta: getTemplateObjectMeta(csiDeploy),
 			Spec: corev1.PodSpec{
 				HostNetwork: true,
 				HostPID:     true,

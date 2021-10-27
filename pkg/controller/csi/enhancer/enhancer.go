@@ -27,6 +27,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -180,6 +181,13 @@ func boolPtr(value bool) *bool {
 // getSecretName returns a name for secret.
 func getSecretName(csiDeploy *csiv1.CSI) string {
 	return strings.ReplaceAll(csiDeploy.Spec.DriverName+"-secret", ".", "-")
+}
+
+func getTemplateObjectMeta(csiDeploy *csiv1.CSI) metav1.ObjectMeta {
+	if csiDeploy.Spec.DriverTemplate != nil && &csiDeploy.Spec.DriverTemplate.Template != nil {
+		return csiDeploy.Spec.DriverTemplate.Template.ObjectMeta
+	}
+	return metav1.ObjectMeta{}
 }
 
 // getConfigMapName returns a name for secret.
