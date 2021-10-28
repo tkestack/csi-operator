@@ -112,6 +112,8 @@ func (r *ReconcileCSI) syncNodeDriver(csiDeploy *csiv1.CSI) (*appsv1.DaemonSet, 
 func (r *ReconcileCSI) generateNodeDriver(csiDeploy *csiv1.CSI) *appsv1.DaemonSet {
 	template := csiDeploy.Spec.DriverTemplate.Template.DeepCopy()
 
+	r.handleNodeDriverTemplate(template, csiDeploy.Spec.DriverName)
+
 	if csiDeploy.Namespace == systemNamespace {
 		// Make node as system critical.
 		template.Spec.PriorityClassName = "system-cluster-critical"
@@ -163,6 +165,16 @@ func (r *ReconcileCSI) generateNodeDriver(csiDeploy *csiv1.CSI) *appsv1.DaemonSe
 				Type: appsv1.RollingUpdateDaemonSetStrategyType,
 			},
 		},
+	}
+}
+
+// handleNodeDriverTemplate remove prometheus configuration and disable metrics
+func (r *ReconcileCSI) handleNodeDriverTemplate(template *corev1.PodTemplateSpec, driverName string) {
+	if driverName == csiv1.CSIDriverTencentCBS {
+		template.Annotations = map[string]string{}
+		if len(template.Spec.Containers) == 1 {
+			template.Spec.Containers[0].Args = append(template.Spec.Containers[0].Args, "--enable_metrics_server=false")
+		}
 	}
 }
 
