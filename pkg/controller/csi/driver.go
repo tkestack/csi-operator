@@ -112,6 +112,8 @@ func (r *ReconcileCSI) syncNodeDriver(csiDeploy *csiv1.CSI) (*appsv1.DaemonSet, 
 func (r *ReconcileCSI) generateNodeDriver(csiDeploy *csiv1.CSI) *appsv1.DaemonSet {
 	template := csiDeploy.Spec.DriverTemplate.Template.DeepCopy()
 
+	r.handleNodeDriverTemplate(template, csiDeploy.Spec.DriverName)
+
 	if csiDeploy.Namespace == systemNamespace {
 		// Make node as system critical.
 		template.Spec.PriorityClassName = "system-cluster-critical"
@@ -148,6 +150,7 @@ func (r *ReconcileCSI) generateNodeDriver(csiDeploy *csiv1.CSI) *appsv1.DaemonSe
 	selectedLabels := map[string]string{nodeDriverLabel: name}
 	mergeLabels(&template.ObjectMeta, selectedLabels)
 
+	klog.V(4).Infof("RollingUpdate:%v", r.config.DaemonSetMaxUnavailable)
 	// Generate the NodeRegistrar object.
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -161,8 +164,23 @@ func (r *ReconcileCSI) generateNodeDriver(csiDeploy *csiv1.CSI) *appsv1.DaemonSe
 			UpdateStrategy: appsv1.DaemonSetUpdateStrategy{
 				// TODO: Make this configurable?
 				Type: appsv1.RollingUpdateDaemonSetStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDaemonSet{
+					MaxUnavailable: &intstr.IntOrString{
+						Type:   intstr.String,
+						StrVal: r.config.DaemonSetMaxUnavailable,
+					}},
 			},
 		},
+	}
+}
+
+// handleNodeDriverTemplate remove prometheus configuration and disable metrics
+func (r *ReconcileCSI) handleNodeDriverTemplate(template *corev1.PodTemplateSpec, driverName string) {
+	if driverName == csiv1.CSIDriverTencentCBS {
+		template.Annotations = map[string]string{}
+		if len(template.Spec.Containers) == 1 {
+			template.Spec.Containers[0].Args = append(template.Spec.Containers[0].Args, "--enable_metrics_server=false")
+		}
 	}
 }
 
@@ -426,6 +444,7 @@ func (r *ReconcileCSI) generateProvisioner(csiDeploy *csiv1.CSI) corev1.Containe
 			"--v=5",
 			"--csi-address=$(ADDRESS)",
 			"--enable-leader-election=true",
+			"--leader-election-type=leases",
 			"--feature-gates=Topology=true",
 		},
 		Resources:    csiDeploy.Spec.Controller.Provisioner.Resources,
