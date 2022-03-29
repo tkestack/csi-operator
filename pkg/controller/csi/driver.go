@@ -150,6 +150,7 @@ func (r *ReconcileCSI) generateNodeDriver(csiDeploy *csiv1.CSI) *appsv1.DaemonSe
 	selectedLabels := map[string]string{nodeDriverLabel: name}
 	mergeLabels(&template.ObjectMeta, selectedLabels)
 
+	klog.V(4).Infof("RollingUpdate:%v", r.config.DaemonSetMaxUnavailable)
 	// Generate the NodeRegistrar object.
 	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -163,6 +164,11 @@ func (r *ReconcileCSI) generateNodeDriver(csiDeploy *csiv1.CSI) *appsv1.DaemonSe
 			UpdateStrategy: appsv1.DaemonSetUpdateStrategy{
 				// TODO: Make this configurable?
 				Type: appsv1.RollingUpdateDaemonSetStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDaemonSet{
+					MaxUnavailable: &intstr.IntOrString{
+						Type:   intstr.String,
+						StrVal: r.config.DaemonSetMaxUnavailable,
+					}},
 			},
 		},
 	}

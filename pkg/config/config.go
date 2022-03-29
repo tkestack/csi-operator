@@ -33,6 +33,8 @@ type Config struct {
 	Filesystems string
 	// NeedDefaultSC indicates whether the cluster need to create default storage classes.
 	NeedDefaultSc bool
+	// DemonSetMaxUnavailable
+	DaemonSetMaxUnavailable string
 }
 
 // AddFlags add the configurations to global flag.
@@ -45,6 +47,8 @@ func (config *Config) AddFlags() {
 		"xfs,ext4", "Supported file systems for well known block volumes")
 	flag.BoolVar(&config.NeedDefaultSc, "need-default-sc", true,
 		"NeedDefaultSC indicates whether the cluster need to create default storage classes")
+	flag.StringVar(&config.DaemonSetMaxUnavailable, "daemonset-max-unavailable", "5%",
+		"Need default daemonSetMaxUnavailable")
 	config.CephConfig.AddFlags()
 	config.TencentCloudConfig.AddFlags()
 }

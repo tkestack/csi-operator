@@ -286,6 +286,11 @@ func snapshotterPolicyRules() []rbacv1.PolicyRule {
 			Verbs:     []string{"get", "list", "watch", "update"},
 		},
 		{
+			APIGroups: []string{"snapshot.storage.k8s.io"},
+			Resources: []string{"volumesnapshots/status"},
+			Verbs:     []string{"get", "list", "watch", "update"},
+		},
+		{
 			APIGroups: []string{"apiextensions.k8s.io"},
 			Resources: []string{"customresourcedefinitions"},
 			Verbs:     []string{"create", "list", "watch", "delete"},
